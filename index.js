@@ -188,6 +188,7 @@ async function run() {
         // store cart data to db
         app.post('/carts', async (req, res) => {
             const cartItem = req.body;
+            console.log(cartItem)
             const result = await bistroBossCarts.insertOne(cartItem);
             res.send(result);
         })
@@ -235,13 +236,26 @@ async function run() {
         app.get('/order-stats', verifyToken, verifyAdmin, async (req, res) => {
             const result = await bistroBossPayment.aggregate([
                 {
-                    $unwind: "$menuItemIds"
+                    $addFields: {
+                        menuItemObjectIds: {
+                            $map: {
+                                input: "$menuItemIds",
+                                as: "id",
+                                in: { $toObjectId: "$$id" }
+                            }
+                        }
+                    }
+                },
+
+                {
+                    // $unwind: "$menuItemIds"
+                    $unwind: "$menuItemObjectIds"
                 },
                 {
                     $lookup:
                     {
                         from: "menu",
-                        localField: "menuItemIds",
+                        localField: "menuItemObjectIds",
                         foreignField: "_id",
                         as: "menuItems"
                     }
